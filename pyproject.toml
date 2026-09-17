@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "md2share"
-version = "0.1.1"
+version = "0.1.2"
 description = "Convert local Markdown into shareable HTML and PDF"
 readme = "README.md"
 requires-python = ">=3.8"

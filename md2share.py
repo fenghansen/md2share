@@ -545,24 +545,25 @@ window.addEventListener('afterprint', () => {
 """
 
 
-def print_sections(body_html: str) -> str:
-    """一级标题和分割线均分页；相邻标记不生成空白页。"""
+def print_sections(body_html: str, page_break_on_hr: bool = False) -> str:
+    """一级标题自动分页，可选分割线分页；相邻标记不生成空白页。"""
     sections = []
-    for part in re.split(r'(<hr>)|(?=<h1>)', body_html):
+    pattern = r'(<hr>)|(?=<h1>)' if page_break_on_hr else r'(?=<h1>)'
+    for part in re.split(pattern, body_html):
         if not part or not part.strip():
             continue
-        if part == '<hr>':
+        if page_break_on_hr and part == '<hr>':
             sections.append('<hr class="chapter-separator">')
         else:
             sections.append(f'<section class="print-section">{part.strip()}</section>')
     return '\n'.join(sections)
 
 
-def build_html(title: str, body_html: str, paginate: bool = True) -> str:
+def build_html(title: str, body_html: str, paginate: bool = True, page_break_on_hr: bool = False) -> str:
     extra_css = pygments_css()
     layout = PRINT_LAYOUT if paginate else ''
     if paginate:
-        body_html = print_sections(body_html)
+        body_html = print_sections(body_html, page_break_on_hr=page_break_on_hr)
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -666,6 +667,7 @@ def main(argv=None):
     )
     parser.add_argument('input', help='输入 .md 文件')
     parser.add_argument('-o', '--output', help='输出 .html 路径；--pdf-only 时为 .pdf 路径；--folder 时为导出目录')
+    parser.add_argument('--page-break-on-hr', action='store_true', help='遇到 Markdown 分割线强制分页（默认关闭；--continuous 优先）')
     parser.add_argument('--continuous', action='store_true', help='PDF 连续排版，不按一级标题或分割线分页，也不自动适配图片')
     parser.add_argument('--pdf', action='store_true', help='同时生成 PDF（优先无头 Chromium，缺失时回退 LibreOffice）')
     parser.add_argument('--pdf-only', action='store_true', help='仅生成 PDF，-o 可指定 PDF 路径；临时 HTML 自动清理')
@@ -698,7 +700,7 @@ def main(argv=None):
             _IMG_CTX['out_dir'] = folder
             _reset_image_context(src.parent, True)
             body = render_blocks(parse_markdown(text))
-            html_path.write_text(build_html(title, body, paginate=not args.continuous), encoding='utf-8')
+            html_path.write_text(build_html(title, body, paginate=not args.continuous, page_break_on_hr=args.page_break_on_hr), encoding='utf-8')
             engine = html_to_pdf(html_path, pdf_path)
             if not pdf_path.exists():
                 sys.exit('未找到生成的 PDF，请检查转换输出。')
@@ -728,7 +730,7 @@ def main(argv=None):
 
     blocks = parse_markdown(text)
     body = render_blocks(blocks)
-    html_path.write_text(build_html(title, body, paginate=not args.continuous), encoding='utf-8')
+    html_path.write_text(build_html(title, body, paginate=not args.continuous, page_break_on_hr=args.page_break_on_hr), encoding='utf-8')
     print(f'[OK] HTML: {html_path}')
     if args.folder and _IMG_CTX['copied']:
         print(f'[OK] 图片: {len(_IMG_CTX["copied"])} 张复制到 {html_path.parent / "images"}')

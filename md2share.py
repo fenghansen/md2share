@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 try:
     from pygments import highlight
@@ -500,9 +501,9 @@ PRINT_LAYOUT = """
   p { margin:2mm 0; }
   td, th { padding:1.7mm 2mm; }
   pre.code-block { font-size:8.4pt; line-height:1.3; padding:2.5mm; }
-  .print-section { break-before:page; }
+  .print-section { break-before:auto; }
+  .print-section ~ .print-section { break-before:page; }
   .chapter-separator { display:none; }
-  .print-section:first-child { break-before:auto; }
   img { max-height:220mm; object-fit:contain; margin:2mm auto; }
 }
 @page { @bottom-right { content:counter(page); font-size:8pt; color:#64748b; } }
@@ -545,14 +546,15 @@ window.addEventListener('afterprint', () => {
 
 
 def print_sections(body_html: str) -> str:
-    """Use rendered top-level headings, so headings inside code blocks stay untouched."""
-    parts = re.split(r'(?=<h1>)', body_html)
+    """一级标题和分割线均分页；相邻标记不生成空白页。"""
     sections = []
-    for part in parts:
-        # A separator immediately before a new chapter is redundant on paper.
-        part = re.sub(r'<hr>(\s*)$', r'<hr class="chapter-separator">\1', part).strip()
-        if part:
-            sections.append(f'<section class="print-section">{part}</section>')
+    for part in re.split(r'(<hr>)|(?=<h1>)', body_html):
+        if not part or not part.strip():
+            continue
+        if part == '<hr>':
+            sections.append('<hr class="chapter-separator">')
+        else:
+            sections.append(f'<section class="print-section">{part.strip()}</section>')
     return '\n'.join(sections)
 
 
@@ -589,7 +591,7 @@ def get_title(text: str, fallback: str) -> str:
     return fallback
 
 
-def find_chrome() -> str | None:
+def find_chrome() -> Optional[str]:
     """定位可用于打印 PDF 的无头 Chromium（含 Playwright 缓存的副本）。"""
     candidates = []
     pw = Path.home() / '.cache' / 'ms-playwright'
@@ -664,7 +666,7 @@ def main(argv=None):
     )
     parser.add_argument('input', help='输入 .md 文件')
     parser.add_argument('-o', '--output', help='输出 .html 路径；--pdf-only 时为 .pdf 路径；--folder 时为导出目录')
-    parser.add_argument('--continuous', action='store_true', help='PDF 连续排版，不按一级标题分页或自动适配图片')
+    parser.add_argument('--continuous', action='store_true', help='PDF 连续排版，不按一级标题或分割线分页，也不自动适配图片')
     parser.add_argument('--pdf', action='store_true', help='同时生成 PDF（优先无头 Chromium，缺失时回退 LibreOffice）')
     parser.add_argument('--pdf-only', action='store_true', help='仅生成 PDF，-o 可指定 PDF 路径；临时 HTML 自动清理')
     parser.add_argument('--folder', action='store_true', help='导出为独立文件夹（index.html + 图片 + 原 md + 可选 PDF）')

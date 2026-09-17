@@ -61,7 +61,7 @@ class ListTest(unittest.TestCase):
 
 
 class PrintLayoutTest(unittest.TestCase):
-    def test_chapters_code_and_continuous(self):
+    def test_separators_code_and_continuous(self):
         source = '# 第一章\n\n```text\n# 代码里的标题\n```\n\n---\n\n# 第二章\n\n结尾'
         body = md2share.render_blocks(md2share.parse_markdown(source))
         html = md2share.build_html('测试', body)
@@ -72,6 +72,16 @@ class PrintLayoutTest(unittest.TestCase):
         self.assertNotIn('beforeprint', continuous)
         self.assertNotIn('class="print-section"', continuous)
         self.assertIn('<hr>', continuous)
+
+    def test_independent_heading_and_separator_breaks(self):
+        source = '# 标题一\n\n正文\n\n# 标题二\n\n正文'
+        html = md2share.build_html('测试', md2share.render_blocks(md2share.parse_markdown(source)))
+        self.assertEqual(html.count('<section class="print-section">'), 2)
+        source = '第一页\n\n---\n\n第二页\n\n```text\n---\n```'
+        html = md2share.build_html('测试', md2share.render_blocks(md2share.parse_markdown(source)))
+        self.assertEqual(html.count('<section class="print-section">'), 2)
+        self.assertEqual(html.count('<hr class="chapter-separator">'), 1)
+        self.assertIn('---', html)
 
 
 if __name__ == '__main__':

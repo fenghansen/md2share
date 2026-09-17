@@ -4,7 +4,17 @@
 
 ## 安装
 
-需要 Python 3.10 或更新版本。通过 GitHub 安装（私有仓库需先配置有访问权限的 SSH 密钥）：
+需要 Python 3.10 或更新版本。通过 PyPI 安装：
+
+```bash
+python -m pip install md2share
+# 可选：代码语法高亮
+python -m pip install 'md2share[highlight]'
+```
+
+[PyPI 项目页](https://pypi.org/project/md2share/)
+
+也可通过 GitHub 安装（私有仓库需先配置有访问权限的 SSH 密钥）：
 
 ```bash
 python -m pip install git+ssh://git@github.com/fenghansen/md2share.git
